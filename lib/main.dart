@@ -1,7 +1,6 @@
-import 'package:causekey/chat_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:flutter/animation.dart'; // Import for animation
+import 'chat_screen.dart';
 
 void main() {
   runApp(MyApp());
@@ -17,8 +16,33 @@ class MyApp extends StatelessWidget {
   }
 }
 
-class MatchedScreen extends StatelessWidget {
+class MatchedScreen extends StatefulWidget {
+  @override
+  _MatchedScreenState createState() => _MatchedScreenState();
+}
+
+class _MatchedScreenState extends State<MatchedScreen> {
   bool _isHovered = false;
+  List<Chat> unreadChats = [
+    Chat('Ava Jones', 'assets/54.png', '1 hour ago'),
+  ];
+  List<Chat> readChats = [];
+
+  void _navigateToChat(Chat chat) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => ChatScreen(),
+      ),
+    ).then((_) {
+      setState(() {
+        // Move chat from unread to read
+        unreadChats.remove(chat);
+        readChats.insert(0, chat);
+      });
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -55,9 +79,7 @@ class MatchedScreen extends StatelessWidget {
       ),
       body: Column(
         children: [
-          Divider(
-            height: 40,
-          ),
+          Divider(height: 40),
           _buildMatchedProfilesSection(context),
           Divider(),
           Container(
@@ -66,21 +88,71 @@ class MatchedScreen extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.start,
               children: [
                 Text(
-                  'Chats ',
+                  'Unread Chats ',
                   style: GoogleFonts.josefinSans(
                       fontSize: 24, fontWeight: FontWeight.bold),
                 ),
                 Text(
-                  '(1)',
+                  '(${unreadChats.length})',
                   style: GoogleFonts.josefinSans(fontSize: 24),
                 )
               ],
             ),
           ),
-          SizedBox(
-            height: 20,
+          SizedBox(height: 20),
+          Expanded(
+            child: ListView.builder(
+              itemCount: unreadChats.length,
+              itemBuilder: (context, index) {
+                final chat = unreadChats[index];
+                return Dismissible(
+                  key: Key(chat.name),
+                  direction: DismissDirection.endToStart,
+                  onDismissed: (direction) {
+                    _navigateToChat(chat);
+                  },
+                  background: Container(
+                    color: Colors.green,
+                    child: Center(
+                      child: Text(
+                        'Swipe to Enter Chat',
+                        style: GoogleFonts.josefinSans(color: Colors.white),
+                      ),
+                    ),
+                  ),
+                  child: _buildChatListTile(chat, isRead: false),
+                );
+              },
+            ),
           ),
-          _buildChatListTile(context),
+          Divider(),
+          Container(
+            padding: EdgeInsets.only(top: 8, left: 20),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.start,
+              children: [
+                Text(
+                  'Read Chats ',
+                  style: GoogleFonts.josefinSans(
+                      fontSize: 24, fontWeight: FontWeight.bold),
+                ),
+                Text(
+                  '(${readChats.length})',
+                  style: GoogleFonts.josefinSans(fontSize: 24),
+                )
+              ],
+            ),
+          ),
+          SizedBox(height: 20),
+          Expanded(
+            child: ListView.builder(
+              itemCount: readChats.length,
+              itemBuilder: (context, index) {
+                final chat = readChats[index];
+                return _buildChatListTile(chat, isRead: true);
+              },
+            ),
+          ),
         ],
       ),
       bottomNavigationBar: _buildBottomNavigationBar(),
@@ -133,6 +205,8 @@ class MatchedScreen extends StatelessWidget {
   }
 
   Widget _buildProfileCircle(String name, String imagePath, double radius) {
+    double imageSize = radius * 1.2; // Increase the size by 20% for the image
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16.0),
       child: MouseRegion(
@@ -147,16 +221,16 @@ class MatchedScreen extends StatelessWidget {
               ClipOval(
                 child: Container(
                   color: Colors.white,
-                  width: radius,
-                  height: radius,
+                  width: imageSize, // Adjusted size
+                  height: imageSize, // Adjusted size
                   child: Align(
-                    alignment: Alignment.topCenter,
+                    alignment: Alignment.center,
                     child: FittedBox(
                       fit: BoxFit.cover,
                       child: Image.asset(
                         imagePath,
-                        width: radius,
-                        height: radius,
+                        width: imageSize, // Adjusted size
+                        height: imageSize, // Adjusted size
                       ),
                     ),
                   ),
@@ -171,35 +245,27 @@ class MatchedScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildChatListTile(BuildContext context) {
+  Widget _buildChatListTile(Chat chat, {required bool isRead}) {
     return GestureDetector(
       onTap: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (context) => ChatScreen()),
-        );
-      },
-      child: AnimatedContainer(
-        duration: Duration(milliseconds: 200),
-        padding: EdgeInsets.all(8.0),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(8),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.grey.shade400,
-              blurRadius: 4.0,
-              offset: Offset(0, 2),
+        if (isRead) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => ChatScreen(),
             ),
-          ],
-        ),
+          );
+        }
+      },
+      child: Container(
+        color: isRead ? Colors.grey[200] : Colors.white,
         child: ListTile(
           leading: CircleAvatar(
-            backgroundImage: AssetImage('assets/54.png'),
+            backgroundImage: AssetImage(chat.imagePath),
             radius: 25,
           ),
           title: Text(
-            'Ava Jones',
+            chat.name,
             style: GoogleFonts.josefinSans(fontWeight: FontWeight.bold),
           ),
           subtitle: Text(
@@ -207,7 +273,7 @@ class MatchedScreen extends StatelessWidget {
             style: GoogleFonts.josefinSans(),
           ),
           trailing: Text(
-            '1 hour ago',
+            chat.timeAgo,
             style: GoogleFonts.josefinSans(),
           ),
         ),
@@ -253,4 +319,12 @@ class MatchedScreen extends StatelessWidget {
       showUnselectedLabels: false,
     );
   }
+}
+
+class Chat {
+  final String name;
+  final String imagePath;
+  final String timeAgo;
+
+  Chat(this.name, this.imagePath, this.timeAgo);
 }
